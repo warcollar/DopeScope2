@@ -1,0 +1,11 @@
+{
+  "WIFI_HIDDEN":true,
+  "WIFI_BSSID":false,
+  "WIFI_PASSIVE":false,
+  "WIFI_DWELL":300,
+  "BLE_ACTIVE":true,
+  "BLE_SCANTIME":6,
+  "BCL_SCANTIME":2,
+  "INVERT_BUTTON":false,
+  "SHOW_SPLASH":true
+}
