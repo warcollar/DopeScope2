@@ -5,6 +5,7 @@
 #include <BLEAdvertisedDevice.h>
 #include "wifi_util.h"
 #include "ble_util.h"
+#include "version.h"
 
 // Define Screensize
 // 240 is 240x240 ST7789 based display
@@ -24,7 +25,7 @@ uint32_t splashTimer;
 uint16_t scr_width=0;
 uint16_t scr_height=0;
 
-MODE modes[4] = {
+MODE modes[3] = {
   {
     "WiFi Scan",
     {1,{{CLR_RED,6,7,{ 0x54, 0x53, 0x48, 0x27, 0x10, 0x0F }}}}
@@ -573,7 +574,7 @@ bool displayWiFiDetail(wifi_ap *ap, uint8_t input){
      *  Start Passive Wifi Collection and update RSSI and client lists...
      */
      if (start_sniffer(ap->iBSSID, ap->channel)){
-       Serial.println("Sniffer Started");
+       Serial.println("Sniffer started");
      }
      baseRSSI = ap->RSSI;
      shouldUpdate=true;
@@ -890,7 +891,6 @@ bool displayBLEDetail(BLEAdvertisedDevice* device, uint8_t input){
       string myData = device->getManufacturerData();
       uint8_t datalength = device->getManufacturerData().length();
 
-
       const char *payload = myData.data();
       int dev_id = -1;
       uint16_t mfr_id = 0;
@@ -898,31 +898,37 @@ bool displayBLEDetail(BLEAdvertisedDevice* device, uint8_t input){
         ESP_LOGE(LOG_TAG, "Length too small for Manufacturer Data"); // MFR is a 2 byte field
         if (DEBUG) Serial.printf("Length (%d) too small for ESP_BLE_AD_TYPE_128SERVICE_DATA", datalength);
       } else {
-        mfr_id = *payload;
+        mfr_id = *payload + (*(payload + 1) << 8);
       };
-      /*if (mfr_id){
-        std::map<int, String>::const_iterator it;
-        it = manufacturers.find(mfr_id);
-        if (it != manufacturers.end()) {
-          tft.println(str_truncate(it->second.c_str(), 18, true));
-        }
-        if (mfr_id == 0x0006){
-          payload += 3;
-          dev_id = *payload;
-          it = dev_type.find(dev_id);
-          if (it != dev_type.end()) {
-            tft.println(it->second);
-          } else {
-            tft.printf("Unknown Dev (%d)", dev_id);
-            tft.println();
+      if (mfr_id){
+        uint8_t manuf[64];
+        getMfrData(mfr_id, manuf);
+        if (manuf[0] == 0 ){
+          char *pHex = BLEUtils::buildHexData(nullptr, (uint8_t*)device->getManufacturerData().data(), device->getManufacturerData().length());
+          tft.printf("M| 0x%s", pHex);
+          tft.println("");
+          free(pHex);
+        }else{
+          tft.println(str_truncate((const char*)manuf, 18, true));
+          if (mfr_id == 0x0006){
+            std::map<int, String>::const_iterator it;
+            payload += 3;
+            dev_id = *payload;
+            it = ble_dev_type.find(dev_id);
+            if (it != ble_dev_type.end()) {
+              tft.println(it->second);
+            } else {
+              tft.printf("Unknown Dev (%d)", dev_id);
+              tft.println();
+            }
           }
         }
-      }else{*/
+      }else{
         char *pHex = BLEUtils::buildHexData(nullptr, (uint8_t*)device->getManufacturerData().data(), device->getManufacturerData().length());
         tft.printf("M| 0x%s", pHex);
         tft.println("");
         free(pHex);
-      //}
+      }
       ble_newData=false;
     }
     if (device->haveServiceData()) {
@@ -994,4 +1000,10 @@ bool displayBLEDetail(BLEAdvertisedDevice* device, uint8_t input){
     return true;
   }
   return false;
+}
+
+void drawVersion(){
+  tft.setCursor(0, tft.height()-lineHeight);
+  setTextColor(CLR_DKGRAY, CLR_BLACK, false);
+  tft.printf("v%s.%s", MAJVER, BUILDVER);
 }

@@ -5,6 +5,7 @@
 #include "graphics.h"
 #include "util.h"
 #include "config.h"
+#include "storage.h"
 
 /* 
  *  Configuration Variables 
@@ -30,42 +31,13 @@ std::map<String, config_item> configuration={
 
 String config_keys[9] = {"SHOW_SPLASH", "INVERT_BUTTON", "WIFI_HIDDEN", "WIFI_BSSID", "WIFI_PASSIVE", "WIFI_DWELL", "BLE_ACTIVE", "BLE_SCANTIME", "BCL_SCANTIME"};
 
-void format(){
-  switch(FSTYPE){
-    case 0:
-      SPIFFS.format();
-      break;
-    case 1:
-      FFat.format();
-      break;
-  }
-}
-
-bool FSinit(){
-  if (DEBUG) Serial.print("Initializing FS:");
-  if (DEBUG) Serial.print(FSTYPE);
-  switch(FSTYPE){
-    case 0:
-      return SPIFFS.begin(FORMAT_SPIFFS_IF_FAILED);
-      break;
-    case 1:
-      return FFat.begin(true);
-      break;
-  }
-}
-
-File openFile(const char * path, const char * fmode){
-  switch(FSTYPE){
-    case 0:
-      return SPIFFS.open(path, fmode);
-    case 1:
-      return FFat.open(path, fmode);
-  }
-}
-
 bool saveConfig() {
+#if ARDUINOJSON_VERSION_MAJOR==5
   StaticJsonBuffer<200> jsonBuffer;
   JsonObject& json = jsonBuffer.createObject();
+#elif ARDUINOJSON_VERSION_MAJOR==6
+  StaticJsonDocument<200> json;
+#endif
   json["SHOW_SPLASH"]  = (bool)configuration["SHOW_SPLASH"].value;
   json["INVERT_BUTTON"]  = (bool)configuration["INVERT_BUTTON"].value;
   json["WIFI_HIDDEN"]  = (bool)configuration["WIFI_HIDDEN"].value;
@@ -81,8 +53,14 @@ bool saveConfig() {
     Serial.println("Failed to open config file for writing");
     return false;
   }
-
+#if ARDUINOJSON_VERSION_MAJOR==5
   json.printTo(configFile);
+#elif ARDUINOJSON_VERSION_MAJOR==6
+  if (serializeJson(json, configFile) == 0) {
+    Serial.println(F("Failed to write to file"));
+  }
+#endif
+  
   return true;
   
 }
@@ -106,18 +84,23 @@ bool loadConfig() {
     Serial.println("Config file size is too large");
     return false;
   }
-
+  
+#if ARDUINOJSON_VERSION_MAJOR==5
   std::unique_ptr<char[]> buf(new char[size]);
-
   configFile.readBytes(buf.get(), size);
-
   StaticJsonBuffer<200> jsonBuffer;
   JsonObject& json = jsonBuffer.parseObject(buf.get());
-
   if (!json.success()) {
     Serial.println("Failed to parse config file");
     return false;
   }
+#elif ARDUINOJSON_VERSION_MAJOR==6
+  StaticJsonDocument<200> json;
+  DeserializationError error = deserializeJson(json, configFile);
+  if (error)
+    Serial.println(F("Failed to read file, using default configuration"));
+#endif  
+ 
   if (json.containsKey("SHOW_SPLASH")) {
     configuration["SHOW_SPLASH"].value = (bool)json["SHOW_SPLASH"];
   }
@@ -145,11 +128,13 @@ bool loadConfig() {
   if (json.containsKey("BCL_SCANTIME")) {
     configuration["BCL_SCANTIME"].value = json["BCL_SCANTIME"];
   }
-  
+  configFile.close();
   if (DEBUG) Serial.print("Loaded SHOW_SPLASH:");
   if (DEBUG) Serial.println(configuration["SHOW_SPLASH"].value);
   return true;
 }
+
+
 void printConfigEntry(String name, config_item config, bool selected, bool editing, bool clear){
   uint16_t fontPos = tft.getCursorY();
   uint16_t foreground = CLR_DKGRAY;
@@ -219,7 +204,6 @@ bool configMenu(uint8_t myInput){
   // Check for input
   // If we have had User Input, we need to process it.
   if (myInput) {
-    if (DEBUG) Serial.println(myInput);
     if(editidx > -1){
       int val=0;
       if (myInput & 1){
@@ -305,7 +289,7 @@ bool configMenu(uint8_t myInput){
   // Draw header if we haven't run
   if (!CFG_HASRUN){
     clearThrobber();
-    drawHeader(3);
+    drawHeader(2);
   }
   if ((!CFG_HASRUN) || (haschanged)){
     //Draw Buttons

@@ -13,7 +13,8 @@ typedef struct{
   uint32_t lastSeen;
 } wifi_client_t;
 
-
+void wifiInit(uint8_t mode);
+void wifiDeInit();
 void addclient(uint8_t* mac, signed rssi);
 void wifi_promiscuous_cb(void* buff, wifi_promiscuous_pkt_type_t type);
 bool start_sniffer(uint8_t* lock_bssid, uint8_t channel);

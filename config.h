@@ -1,7 +1,6 @@
 #ifndef _CONFIGH_
 #define _CONFIGH_
 #include <map>
-#define FORMAT_SPIFFS_IF_FAILED true
 
 typedef enum {
   TYPE_BOOL,

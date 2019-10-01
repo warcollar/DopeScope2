@@ -20,6 +20,7 @@
 #include "config.h"
 #include <map>
 #include "util.h"
+#include "storage.h"
 using namespace std;
 #define SNAP_LEN 2324   // max len of each recieved packet
 #ifdef __AVR__
@@ -36,10 +37,15 @@ BLEScan* pBLEScan=NULL;
 std::string watch_addr;
 BLEAdvertisedDevice BLE_DEVICES[50];
 
+bool dbAvailable=false;
+
 uint8_t* ble_bssid;
 int ble_rssi=-99;
 bool ble_scan_running = false;
 bool ble_newData = false;
+File dbFile;
+uint8_t MAXLEN;
+uint16_t TOTALM;
 
 void MyAdvertisedDeviceCallbacks::onResult(BLEAdvertisedDevice device) {
   // Something like... if UUID = service UUID, then add a counter to the list and update the RSSI.
@@ -53,7 +59,22 @@ void MyAdvertisedDeviceCallbacks::onResult(BLEAdvertisedDevice device) {
   }
 };
 
-static void scanCompleteCB(BLEScanResults scanResults) {
+void BLEInit() {
+  if (DEBUG) Serial.print("Initializing BLE...");
+  BLEDevice::init("");
+  pBLEScan = BLEDevice::getScan();
+  if (DEBUG) Serial.println("done.");
+}
+
+void BLEDeinit() {
+  if (DEBUG) Serial.print("Deinitializing BLE...");
+  pBLEScan->stop();
+  // When the 1.4 version of the arduino/esp32 code is released, this should work and can be reenabled
+  //BLEDevice::deinit(false);
+  if (DEBUG) Serial.println("done.");
+}
+
+static void sniffCompleteCB(BLEScanResults scanResults) {
   ble_scan_running=false;
 }
 
@@ -64,9 +85,8 @@ bool ble_start_sniffer(BLEAddress addr){
     pBLEScan->setActiveScan(true); //active scan uses more power, but get results faster
     pBLEScan->setInterval(0x50);
     pBLEScan->setWindow(0x30);  // less or equal setInterval value
-    pBLEScan->start(1, scanCompleteCB);
+    pBLEScan->start(1, sniffCompleteCB);
     ble_scan_running=true;
-    Serial.println("Started BLE Scan!");
     return true;
   }
   return false;
@@ -83,6 +103,59 @@ bool ble_stop_sniffer(){
     ble_scan_running=false;
     return true;
 }
+
+void initMfrDB(){
+  // Init Filesystem
+  if(!FSinit()){
+    if (DEBUG) Serial.println("Storage Mount Failed");
+    return;
+  }
+  if (DEBUG) Serial.println("...done");
+  
+  dbFile = openFile("/manufacturers.db", "r");
+  if (!dbFile) {
+    if (DEBUG) Serial.println("Failed to open db file");
+    return;
+  }
+
+  size_t size = dbFile.size();
+  if (size < 1024) {
+    if (DEBUG) Serial.println("DB file size is too small");
+    return;
+  } else {
+    if (DEBUG) {
+      Serial.print("FileSize: ");
+      Serial.println(size);
+    } 
+  }
+  bool dbAvailable=false;
+  MAXLEN=dbFile.read();
+  dbFile.seek(2);
+  uint8_t lower = dbFile.read();
+  uint8_t upper = dbFile.read();
+  TOTALM = (upper << 8) + lower;
+  if (DEBUG) {
+    Serial.print("MAXLEN: ");
+    Serial.println(MAXLEN);
+    Serial.print("Total Records: ");
+    Serial.println(TOTALM);
+  }
+}
+
+void getMfrData(uint16_t mfr, uint8_t* manuf){
+  manuf[0] = 0;
+  // If mfr > max, return
+  if (mfr > TOTALM) {
+    if (DEBUG) Serial.println("MFR out of range");
+    return;
+  }
+  // Check database
+  dbFile.seek((mfr+1) * MAXLEN);
+  dbFile.read(manuf, (size_t) 24);
+  manuf[MAXLEN] = 0;
+  dbFile.seek(0);
+}
+
 
 std::map<int,String> ble_icon =
 {
@@ -137,7 +210,7 @@ std::map<int,String> ble_icon =
     {0x1444, "Outdoor Sports Location Pod and Nav"},
 };
 
-const std::map<int,String> dev_type = 
+const std::map<int,String> ble_dev_type = 
 {
   {0x01, "Xbox One"},
   {0x06, "iPhone"},

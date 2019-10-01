@@ -111,6 +111,7 @@ bool displayWiFiDetail(wifi_ap *ap, uint8_t input);
 bool displayWiFiSnoop(wifi_ap *ap, uint8_t input);
 bool displayBLEDetail(BLEAdvertisedDevice* device, uint8_t input);
 void setTextColor(uint16_t foreground, uint16_t background, bool transparent=false);
+void drawVersion();
 
 struct LAYER
 {

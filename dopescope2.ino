@@ -12,6 +12,7 @@
 #include "graphics.h"
 #include "util.h"
 #include "config.h"
+#include "version.h"
 #include <bits/stdc++.h> 
 
 using namespace std; 
@@ -107,12 +108,14 @@ void setup()
     } else {
       INTRO_COMPLETE=true;
     }
+
+    // Dumb little dance to setup and init the WiFi stack since those methods are private (hint!)
     // Set WiFi to station mode and disconnect from an AP if it was previously connected
     WiFi.mode(WIFI_STA);
+    WiFi.mode(WIFI_MODE_NULL);
     WiFi.disconnect();
-    BLEDevice::init("");
-    pBLEScan = BLEDevice::getScan();
-    //clearScreen();
+    wifiDeInit();
+    
     pinMode(BTNPIN1, INPUT_PULLUP);
     pinMode(BTNPIN2, INPUT_PULLUP);
     pinMode(BTNPIN3, INPUT_PULLUP);
@@ -125,18 +128,21 @@ void setup()
     }
     attachInterrupt(digitalPinToInterrupt(BTNPIN2), handleButtonB, FALLING);
     if (DEBUG) Serial.println("Setup complete");
+    initMfrDB();
 }
 
 void clearState(int m) {
+  if (DEBUG) Serial.println("Clearing State...");
   if (mode == m){
     return;
   }
   // Stop all processes
-  WiFi.mode(WIFI_STA);
-  WiFi.disconnect();
-  WiFi.scanDelete();
-  // Stop any BLE Scans
-  pBLEScan->stop();
+  wifiDeInit();
+  
+  // Clear BLE Stack
+  if (BLEDevice::getInitialized()) {
+    BLEDeinit();
+  }
   // Stop BCL Scans
   bt_cancel_scan();
   // Clear all control variables
@@ -154,6 +160,8 @@ void clearState(int m) {
   wifiDevices.clear();
   BCLDevices.clear();
   BLEDevices.clear();
+  
+  
   //Set mode state
   oldmode=mode;
   mode=m;
@@ -199,26 +207,31 @@ void loop()
     switch(mode)
     {
       case 0:
-        //graphicsTest();
+        //Main Menu
         MainMenu();
       break;
       case 1:
+        // Wifi Scan
         RunWifiScan();
       break;
       case 2:
+        //BLE Scan
         RunBLEScan();
       break;
       /*case 3:
+       * // BL Classic Scan
         RunBCLScan();
         if (hadInput()) clearState(0);
       break;
       case 4:*/
       case 3:
+        // Settings Configuration
         waiting=false;
         ret = configMenu(checkInput());
       break;
     }
     if (!ret){
+      if (DEBUG) Serial.println("No ret code");
       clearState(0);
     }
   } else {
@@ -233,6 +246,7 @@ void MainMenu() {
     waiting=false;
     clearScreen();
     drawLogoEyes(centerx-38, centery-32);
+    drawVersion();
   }
   
   static unsigned int menuoption = 0;
@@ -489,6 +503,7 @@ void RunWifiScan()
     if (! WIFI_HASRUN){
       waiting=true;
     }
+    wifiInit(1);
     WiFi.scanNetworks(true, (bool)configuration["WIFI_HIDDEN"].value, (bool)configuration["WIFI_PASSIVE"].value, (uint8_t)configuration["WIFI_DWELL"].value * 100);
     WIFI_HASRUN=true;
   }
@@ -500,7 +515,7 @@ void StartBLEScan() {
   } else {
     pBLEScan->setActiveScan((bool)configuration["BLE_ACTIVE"].value);
     //pBLEScan->setAdvertisedDeviceCallbacks(new MyAdvertisedDeviceCallbacks());
-    pBLEScan->start(configuration["BLE_SCANTIME"].value, scanCompleteCB2);
+    pBLEScan->start(configuration["BLE_SCANTIME"].value, scanCompleteCB);
     BLE_RUNNING=true;
   }
 }
@@ -509,7 +524,7 @@ bool BLESort(BLEAdvertisedDevice i, BLEAdvertisedDevice j) {
   return (i.getRSSI() > j.getRSSI());
 }
 
-static void scanCompleteCB2(BLEScanResults scanResults) {
+static void scanCompleteCB(BLEScanResults scanResults) {
   if (BLE_RUNNING){
     if (waiting){
       endThrobber();
@@ -545,6 +560,8 @@ void RunBLEScan() {
   int16_t bleDeviceCount=BLEDevices.size();
   if (! BLE_HASRUN){
     drawHeader(1);
+    BLEInit();
+    //checkInput();
   }
   switch(bleMode){
     case 0:
@@ -599,9 +616,9 @@ void RunBLEScan() {
       }
     }
     break;
-    case 1: // WiFi Menu
+    case 1: // BLE Sub Menu
     {
-      uint8_t ret = SubMenu( "-BLE Manu", &m_BLEMenu, !ble_menu_hasrun);
+      uint8_t ret = SubMenu( "-BLE Menu", &m_BLEMenu, !ble_menu_hasrun);
       if (ret){
         bleMode = ret + 1;
         ble_menu_hasrun=false;
