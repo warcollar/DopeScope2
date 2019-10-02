@@ -35,7 +35,7 @@ using namespace std;
 bool ble_update_lock=false;
 BLEScan* pBLEScan=NULL;
 std::string watch_addr;
-BLEAdvertisedDevice BLE_DEVICES[50];
+BLEAdvertisedDevice BLE_DEVICES[25];
 
 bool dbAvailable=false;
 
@@ -50,8 +50,6 @@ uint16_t TOTALM;
 void MyAdvertisedDeviceCallbacks::onResult(BLEAdvertisedDevice device) {
   // Something like... if UUID = service UUID, then add a counter to the list and update the RSSI.
   BLEAddress addr = device.getAddress();
-  char *pHex = BLEUtils::buildHexData(nullptr, (uint8_t*)device.getPayload(), device.getPayloadLength());
-  free(pHex);
   if (watch_addr.compare(addr.toString()) == 0){
     ble_rssi = abs(device.getRSSI());
     pCount = 100-ble_rssi;

@@ -37,8 +37,8 @@ void wifiInit(uint8_t mode) {
   wifi_mode_t currMode;
   esp_wifi_get_mode(&currMode);
   // If we are already in the correct mode, just return
-  if (currMode == mode) return;
-  wifiDeInit();
+  //if (currMode == mode) return;
+  //wifiDeInit();
   if (DEBUG) Serial.print("Setting WiFi state for ");
 
   wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
@@ -50,7 +50,7 @@ void wifiInit(uint8_t mode) {
     case 0:
       if (DEBUG) Serial.print("sniffing...");
       // NULL mode for promiscuous sniffing
-      ESP_ERROR_CHECK( esp_wifi_set_mode(WIFI_MODE_NULL) );
+      ESP_ERROR_CHECK( esp_wifi_set_mode(WIFI_MODE_STA) );
       break;
     case 1:
       if (DEBUG) Serial.print("scanning...");
@@ -59,12 +59,18 @@ void wifiInit(uint8_t mode) {
       break;
     
   }
+  delay(1);
   ESP_ERROR_CHECK( esp_wifi_start() );
   if (DEBUG) Serial.println("done");
 }
 
 void wifiDeInit(){
+  Serial.println("DeinitWiFi");
   WiFi.scanDelete();
+  //WiFi.mode(0);
+  while (WiFi.scanComplete() == -1){
+    delay(1);
+  }
   esp_wifi_stop();
 }
 
@@ -156,7 +162,9 @@ void wifi_promiscuous_cb(void* buff, wifi_promiscuous_pkt_type_t type){
 bool start_sniffer(uint8_t* mac, uint8_t channel){
   if(DEBUG) Serial.println("Staring sniffer...");
   bssid = mac;
-  wifiInit(0); 
+  wifiInit(0);
+  //WiFi.mode(WIFI_STA);
+  //WiFi.disconnect();
   esp_wifi_set_channel(channel, WIFI_SECOND_CHAN_NONE);
   esp_wifi_set_promiscuous_rx_cb(&wifi_promiscuous_cb);
   esp_wifi_set_promiscuous(true);

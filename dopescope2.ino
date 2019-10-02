@@ -136,8 +136,11 @@ void clearState(int m) {
   if (mode == m){
     return;
   }
+  // Clear activity deque
+  activity.clear();
   // Stop all processes
   wifiDeInit();
+  WiFi.scanDelete();
   
   // Clear BLE Stack
   if (BLEDevice::getInitialized()) {
@@ -481,7 +484,7 @@ void RunWifiScan()
     tft.setCursor(0,fontPos);
 
     tft.setTextColor(ST77XX_WHITE, ST77XX_BLACK);
-    uint8_t count = wifiDeviceCount > 7 ? 7 : wifiDeviceCount;
+    uint8_t count = wifiDeviceCount > 8 ? 8 : wifiDeviceCount;
     
     for (int i = 0; i < count; ++i) {
       int realNum = i + first;
@@ -499,13 +502,19 @@ void RunWifiScan()
     drawScroll(index, wifiDeviceCount-1);
   }
   // If we are not in a paused state and we don't have data in the store...let's get some
-  if ((!pause) && (scanResults < -1)){
-    if (! WIFI_HASRUN){
-      waiting=true;
+  if (!pause) {
+    if (((scanResults < -1)||(scanResults == 0)) || ((scanResults == -1) && (! WIFI_HASRUN))){
+      if (! WIFI_HASRUN){
+        //WiFi.mode(WIFI_STA);
+        //WiFi.disconnect();
+        //WiFi.scanDelete();
+        wifiInit(1);
+        waiting=true;
+      }
+      if (DEBUG) Serial.println("Starting WiFi Scan!");
+      WiFi.scanNetworks(true, (bool)configuration["WIFI_HIDDEN"].value, (bool)configuration["WIFI_PASSIVE"].value, (uint8_t)configuration["WIFI_DWELL"].value * 100);
+      WIFI_HASRUN=true;
     }
-    wifiInit(1);
-    WiFi.scanNetworks(true, (bool)configuration["WIFI_HIDDEN"].value, (bool)configuration["WIFI_PASSIVE"].value, (uint8_t)configuration["WIFI_DWELL"].value * 100);
-    WIFI_HASRUN=true;
   }
 }
 
@@ -531,7 +540,9 @@ static void scanCompleteCB(BLEScanResults scanResults) {
     }
     // Update data set
     BLEDevices.clear();
-    for (int i=0; i<scanResults.getCount(); i++) {     
+    uint8_t MAXDEV=25;
+    if (scanResults.getCount() < MAXDEV ) MAXDEV=scanResults.getCount();
+    for (int i=0; i<MAXDEV; i++) {     
       BLEDevices.push_back(scanResults.getDevice(i));
     }
     std::sort (BLEDevices.begin(), BLEDevices.end(), BLESort);

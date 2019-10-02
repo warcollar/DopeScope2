@@ -5,7 +5,7 @@ https://www.arduino.cc/en/main/software
 https://github.com/espressif/arduino-esp32/blob/master/docs/arduino-ide/boards_manager.md
 - Using the Arduino Library Manager (Tools->Manage Libraries), install the following extra libraries:
 Adafruit GFX Library (>= 1.5.6)
-ArduinoJSON (v5 and v6)
+ArduinoJSON (v6.12)
 - You may also want to add the following utilities:
     - ESP32 Exception Decoder - This will help you debug code that throws exceptions.  https://github.com/me-no-dev/EspExceptionDecoder
     - Arduino ESP32 Filesystem Uploader - You can use this to upload files to the extra space on the ESP.  https://github.com/me-no-dev/arduino-esp32fs-plugin

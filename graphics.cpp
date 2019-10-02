@@ -848,6 +848,7 @@ bool displayBLEDetail(BLEAdvertisedDevice* device, uint8_t input){
   }
   
   if (ble_newData){
+    ble_newData=false;
     lastSeen = millis();
     int RSSI = abs(baseRSSI);
     currentX = tft.getCursorX();
@@ -929,7 +930,6 @@ bool displayBLEDetail(BLEAdvertisedDevice* device, uint8_t input){
         tft.println("");
         free(pHex);
       }
-      ble_newData=false;
     }
     if (device->haveServiceData()) {
       char *pHex = BLEUtils::buildHexData(nullptr, (uint8_t*)device->getServiceData().data(), device->getServiceData().length());

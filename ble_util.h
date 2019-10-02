@@ -10,7 +10,7 @@
 #include "util.h"
 
 extern BLEScan* pBLEScan;
-extern BLEAdvertisedDevice BLE_DEVICES[50];
+extern BLEAdvertisedDevice BLE_DEVICES[25];
 extern std::map<int,String> ble_icon;
 extern const std::map<int,String> ble_dev_type;
 extern const std::map<int,String> manufacturers;
