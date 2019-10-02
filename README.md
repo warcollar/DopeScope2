@@ -6,16 +6,24 @@ https://github.com/espressif/arduino-esp32/blob/master/docs/arduino-ide/boards_m
 - Using the Arduino Library Manager (Tools->Manage Libraries), install the following extra libraries:
 Adafruit GFX Library (>= 1.5.6)
 ArduinoJSON (v6.12)
-- You may also want to add the following utilities:
+Install the Arduino ESP32 Filesystem Uploader - https://github.com/me-no-dev/arduino-esp32fs-plugin
+- You may also want to add the following utility:
     - ESP32 Exception Decoder - This will help you debug code that throws exceptions.  https://github.com/me-no-dev/EspExceptionDecoder
-    - Arduino ESP32 Filesystem Uploader - You can use this to upload files to the extra space on the ESP.  https://github.com/me-no-dev/arduino-esp32fs-plugin
 - Configure the Arduino IDE Board configuration.  Under the Tools menu, set the following:
     - Board: ESP32 Dev Module
     - Partition Scheme: No OTA (2MB APP/2MB SPIFFS)
     - Port: Make sure this is the USB/Serial port that the Dopescope showed up as.
 
 ## Flashing ##
-Use the built-in arduino "Upload" command to compile and upload the software to the DopeScope.  If you would like to modify the default configurations or use the BLE Manufacturer Lookup DB, be sure to upload the additional data.  This can be done after you flash the initial firmware by selecting "ESP32 Sketch Data Upload" from the "Tools" menu.
+1. Double-click on the dopescope2.ino to bring up the Arduino IDE
+
+2. Select Tools --> Port and select your DopeScope from the list of connected devices
+
+3. Use the built-in arduino "Upload" command to compile and upload the software (the Arrow at the top left-hand side of the IDE) to the DopeScope.  
+
+4. Upload the BLE Manufacturer DB by selecting Tools --> ESP32 Sketch Data Upload.
+
+5. Enjoy
 
 ## BLE Manufacturer Database ##
 BLE devices use a vendor code to specify the manufacturer of a given device.  This is very similar to a MAC address OUI.  The database is maintained by the Bluetooth Special Interest Group (SIG) and is available here: (https://www.bluetooth.com/specifications/assigned-numbers/company-identifiers/).
