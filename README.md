@@ -15,15 +15,18 @@ Install the Arduino ESP32 Filesystem Uploader - https://github.com/me-no-dev/ard
     - Port: Make sure this is the USB/Serial port that the Dopescope showed up as.
 
 ## Flashing ##
-1. Double-click on the dopescope2.ino to bring up the Arduino IDE
+1.  Power on your DopeScope2 and connect it to your computer with the provided USB cable.
 
-2. Select Tools --> Port and select your DopeScope from the list of connected devices
+2. Double-click on the dopescope2.ino to bring up the Arduino IDE
 
-3. Use the built-in arduino "Upload" command to compile and upload the software (the Arrow at the top left-hand side of the IDE) to the DopeScope.  
+3. Select Tools --> Port and select your DopeScope from the list of connected devices
 
-4. Upload the BLE Manufacturer DB by selecting Tools --> ESP32 Sketch Data Upload.
+4. Use the built-in arduino "Upload" command to compile and upload the software (the Arrow at the top left-hand side of the IDE) to the DopeScope.  
+  -- Wait for the device to reboot.
 
-5. Enjoy
+5. Upload the BLE Manufacturer DB by selecting Tools --> ESP32 Sketch Data Upload.
+
+6. Enjoy
 
 ## BLE Manufacturer Database ##
 BLE devices use a vendor code to specify the manufacturer of a given device.  This is very similar to a MAC address OUI.  The database is maintained by the Bluetooth Special Interest Group (SIG) and is available here: (https://www.bluetooth.com/specifications/assigned-numbers/company-identifiers/).
